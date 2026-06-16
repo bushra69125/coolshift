@@ -108,6 +108,14 @@ export function Dashboard({ result, uploadedFile, onReset }: Props) {
       {/* Content */}
       {tab === "Overview" && (
         <div className="space-y-6">
+          {result.ai_summary && (
+            <div className="rounded-xl border border-emerald-800/40 bg-emerald-950/20 px-5 py-4">
+              <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1">
+                AI Analysis · Groq Llama 3.1
+              </p>
+              <p className="text-sm text-slate-300 leading-relaxed">{result.ai_summary}</p>
+            </div>
+          )}
           <MetricCards summary={summary} baseline={baseline} />
           <div className="grid lg:grid-cols-2 gap-6">
             <ScheduleChart data={schedule.slice(0, 96)} />

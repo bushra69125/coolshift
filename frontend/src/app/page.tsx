@@ -4,6 +4,7 @@ import { useState } from "react";
 import { UploadSection } from "@/components/upload-section";
 import { Dashboard } from "@/components/dashboard";
 import { Navbar } from "@/components/navbar";
+import { RunHistory } from "@/components/run-history";
 import { saveRun, saveIntervals } from "@/lib/supabase";
 
 export default function Home() {
@@ -29,7 +30,10 @@ export default function Home() {
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 py-8">
         {!result ? (
-          <UploadSection onResult={handleResult} />
+          <div className="space-y-8">
+            <UploadSection onResult={handleResult} />
+            <RunHistory />
+          </div>
         ) : (
           <Dashboard
             result={result}

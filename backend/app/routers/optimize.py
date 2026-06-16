@@ -2,6 +2,7 @@ import uuid
 import time
 import math
 import logging
+import threading
 from fastapi import APIRouter, UploadFile, File, HTTPException, Body
 from fastapi.responses import JSONResponse
 import pandas as pd
@@ -11,6 +12,8 @@ from ..engines.data_loader import load_excel, parse_workbook, fill_missing_heat_
 from ..engines.baseline import compute_baseline, summarize_baseline
 from ..engines.optimizer import optimize_schedule
 from ..models.schemas import OptimizationRequest
+from ..utils.ai_explainer import generate_daily_summary
+from ..utils.supabase_client import save_optimization_run
 
 logger = logging.getLogger("coolshift.optimize")
 router = APIRouter(prefix="/optimize", tags=["optimize"])
@@ -144,12 +147,39 @@ async def run_optimization(
     summary_clean = {k: _clean(v) for k, v in summary.items()}
     baseline_clean = {k: _clean(v) for k, v in baseline_summary.items()}
 
+    # Groq AI: generate a natural-language summary for this run
+    try:
+        ai_summary = generate_daily_summary(
+            scenario_id=scenario_id,
+            date=str(summary.get("run_timestamp", "")[:10]),
+            total_cost=float(summary.get("optimized_total_cost_pkr") or 0),
+            baseline_cost=float(summary.get("baseline_total_cost_pkr") or 0),
+            total_energy=float(summary.get("optimized_total_energy_kwh") or 0),
+            peak_demand=float(summary.get("optimized_peak_demand_kw") or 0),
+            emissions=float(summary.get("optimized_emissions_kgco2e") or 0),
+            comfort_pct=float(summary.get("comfort_compliance_pct") or 0),
+            solar_pct=float(summary.get("solar_utilization_pct") or 0),
+        )
+        logger.info(f"[RUN] ✅ Groq AI summary generated ({len(ai_summary)} chars)")
+    except Exception as e:
+        logger.warning(f"[RUN] Groq AI failed (non-critical): {e}")
+        ai_summary = f"Scenario {scenario_id}: Saved PKR {summary.get('cost_saving_pkr', 0):.0f} ({summary.get('cost_saving_pct', 0):.1f}%) vs baseline with {summary.get('comfort_compliance_pct', 0):.0f}% comfort compliance."
+
+    # Supabase: save run summary in background thread (non-blocking)
+    weights = {"cost": weight_cost, "emissions": weight_emissions, "comfort": weight_comfort, "peak_demand": weight_peak}
+    threading.Thread(
+        target=save_optimization_run,
+        args=(run_id, scenario_id, summary, days, weights),
+        daemon=True,
+    ).start()
+
     return JSONResponse({
         "run_id": run_id,
         "scenario_id": scenario_id,
         "intervals_optimized": len(out_df),
         "comfort_min": float(profile.get("comfort_min_c", 22)),
         "comfort_max": float(profile.get("comfort_max_c", 26)),
+        "ai_summary": ai_summary,
         "summary": summary_clean,
         "baseline_summary": baseline_clean,
         "schedule": schedule_records,
