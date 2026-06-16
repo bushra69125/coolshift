@@ -50,39 +50,16 @@ def compute_baseline(
     solar_cap = float(assets.get("solar_capacity_kw", 0.0))
     solar_eff = float(assets.get("solar_conversion_efficiency", 0.18))
 
-    # Pre-build baseline lookup keyed on normalized timestamp string
-    bs_lookup = {}
-    if baseline_schedule is not None and len(baseline_schedule) > 0:
-        bs = baseline_schedule.copy()
-        bs["_ts"] = pd.to_datetime(bs["timestamp_local"]).dt.strftime("%Y-%m-%d %H:%M:%S")
-        if "scenario_id" in bs.columns:
-            sid = str(intervals["scenario_id"].iloc[0])
-            bs = bs[bs["scenario_id"].astype(str) == sid]
-        for _, brow in bs.iterrows():
-            bs_lookup[brow["_ts"]] = brow
-
     for i, row in intervals.iterrows():
         occ = int(row["occupancy_count"])
         grid_ok = bool(row["grid_available"])
-        ts_key = pd.to_datetime(row["timestamp_local"]).strftime("%Y-%m-%d %H:%M:%S")
 
-        if bs_lookup:
-            brow = bs_lookup.get(ts_key)
-            if brow is not None:
-                ac_on = int(brow["baseline_ac_units_on"])
-                raw_sp = brow["baseline_ac_setpoint_c"]
-                ac_sp = float(raw_sp) if pd.notna(raw_sp) else default_setpoint
-                fan_on = int(brow["baseline_fan_units_on"])
-            else:
-                ac_on, ac_sp, fan_on = _default_baseline_decision(
-                    occ, total_ac_units, total_fan_units, default_setpoint,
-                    row["temperature_c"], grid_ok
-                )
-        else:
-            ac_on, ac_sp, fan_on = _default_baseline_decision(
-                occ, total_ac_units, total_fan_units, default_setpoint,
-                row["temperature_c"], grid_ok
-            )
+        # Baseline = naive unoptimized: all AC on when occupied, grid only
+        # This is the standard EMS comparison benchmark
+        ac_on, ac_sp, fan_on = _default_baseline_decision(
+            occ, total_ac_units, total_fan_units, default_setpoint,
+            row["temperature_c"], grid_ok
+        )
 
         # If no grid, can't run AC on grid (simplified: assume no battery in baseline)
         if not grid_ok:
