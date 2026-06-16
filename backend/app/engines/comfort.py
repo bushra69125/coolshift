@@ -15,7 +15,7 @@ from typing import Optional
 
 # Fraction of outdoor-indoor temp difference that infiltrates per hour (thermal RC model)
 # low insulation = RC ~8 hrs, medium ~20 hrs, high ~40 hrs
-INSULATION_FACTOR = {"low": 0.12, "medium": 0.05, "high": 0.025}
+INSULATION_FACTOR = {"low": 0.10, "medium": 0.025, "high": 0.012}
 SUN_EXPOSURE_GAIN = {"low": 0.0, "medium": 0.4, "high": 0.9}
 
 DT_HOURS = 0.25          # 15-minute interval
@@ -51,7 +51,7 @@ def estimate_indoor_temp(
     delta_infiltration = leak * (heat_index_c - state.indoor_temp_c) * DT_HOURS
 
     # Solar heat gain through windows (simplified)
-    solar_gain_kw = (solar_irradiance_w_m2 / 1000) * sun * (state.area_m2 * 0.05)
+    solar_gain_kw = (solar_irradiance_w_m2 / 1000) * sun * (state.area_m2 * 0.02)
     delta_solar = (solar_gain_kw / (state.area_m2 * AREA_THERMAL_MASS)) * DT_HOURS
 
     # Internal heat from occupants
