@@ -14,13 +14,13 @@ from typing import Optional
 
 
 # Fraction of outdoor-indoor temp difference that infiltrates per hour (thermal RC model)
-# low insulation = RC ~6 hrs, medium ~12 hrs, high ~20 hrs
-INSULATION_FACTOR = {"low": 0.18, "medium": 0.09, "high": 0.05}
+# low insulation = RC ~8 hrs, medium ~20 hrs, high ~40 hrs
+INSULATION_FACTOR = {"low": 0.12, "medium": 0.05, "high": 0.025}
 SUN_EXPOSURE_GAIN = {"low": 0.0, "medium": 0.4, "high": 0.9}
 
 DT_HOURS = 0.25          # 15-minute interval
 OCCUPANT_HEAT_GAIN_KW = 0.08   # ~80W sensible heat per person
-AREA_THERMAL_MASS = 0.12       # kWh/°C per m² — lightweight construction
+AREA_THERMAL_MASS = 0.05       # kWh/°C per m² — lightweight commercial construction
 
 
 @dataclass

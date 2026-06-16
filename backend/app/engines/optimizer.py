@@ -270,11 +270,12 @@ def _lp_solve(
         # 9. Peak tracking  (multiply by 1/DT — PuLP doesn't support LpVar / float)
         prob += peak_var >= grid_e[i] * (1.0 / DT), f"peak_{i}"
 
-        # 10. Force AC on when occupied and outdoor temp exceeds comfort max
+        # 10. Force at least 1 AC unit on during extreme heat (>35°C outdoor)
+        # Comfort penalty weight handles moderate heat; this is a safety floor only
         if occ > 0 and total_ac > 0 and grid_ok:
             temp = float(row["temperature_c"])
-            if temp > comfort_max:
-                prob += ac_on[i] >= max(1, total_ac // 2), f"comfort_force_{i}"
+            if temp > 35:
+                prob += ac_on[i] >= 1, f"comfort_force_{i}"
 
     # Solve
     solver = pulp.PULP_CBC_CMD(msg=0, timeLimit=55)
