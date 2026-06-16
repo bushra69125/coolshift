@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 DT = 0.25         # 15 minutes in hours
 BIG_M = 1e6
-COMFORT_PENALTY_WEIGHT = 1.0   # PKR-equivalent cost per °C-interval above range
+COMFORT_PENALTY_WEIGHT = 80.0  # PKR-equivalent cost per °C-interval above range
 
 
 REASON_CODES = {
@@ -270,11 +270,11 @@ def _lp_solve(
         # 9. Peak tracking  (multiply by 1/DT — PuLP doesn't support LpVar / float)
         prob += peak_var >= grid_e[i] * (1.0 / DT), f"peak_{i}"
 
-        # 10. Force minimal AC for extreme heat + vulnerable occupants only
-        if occ > 0 and total_ac > 0 and vulnerable:
+        # 10. Force AC on when occupied and outdoor temp exceeds comfort max
+        if occ > 0 and total_ac > 0 and grid_ok:
             temp = float(row["temperature_c"])
-            if temp > comfort_max + 8:
-                prob += ac_on[i] >= 1, f"comfort_force_{i}"
+            if temp > comfort_max:
+                prob += ac_on[i] >= max(1, total_ac // 2), f"comfort_force_{i}"
 
     # Solve
     solver = pulp.PULP_CBC_CMD(msg=0, timeLimit=55)
