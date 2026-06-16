@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 DT = 0.25         # 15 minutes in hours
 BIG_M = 1e6
-COMFORT_PENALTY_WEIGHT = 80.0  # PKR-equivalent cost per °C-interval above range
+COMFORT_PENALTY_WEIGHT = 150.0  # PKR-equivalent cost per °C-interval above range
 
 
 REASON_CODES = {
@@ -209,9 +209,10 @@ def _lp_solve(
         em_terms.append(carbon * grid_e[i])
 
         # Comfort penalty proxy: penalize AC off during occupied hot periods
+        # Trigger 3°C below comfort_max so optimizer pre-cools before heat peaks
         if occ > 0:
             temp = float(row["temperature_c"])
-            penalty_scale = max(0, temp - comfort_max) * COMFORT_PENALTY_WEIGHT
+            penalty_scale = max(0, temp - (comfort_max - 3)) * COMFORT_PENALTY_WEIGHT
             if total_ac > 0 and penalty_scale > 0:
                 # Penalize having AC off when it's hot and occupied
                 comfort_terms.append(penalty_scale * DT * (total_ac - ac_on[i]))
@@ -270,12 +271,13 @@ def _lp_solve(
         # 9. Peak tracking  (multiply by 1/DT — PuLP doesn't support LpVar / float)
         prob += peak_var >= grid_e[i] * (1.0 / DT), f"peak_{i}"
 
-        # 10. Force at least 1 AC unit on during extreme heat (>35°C outdoor)
-        # Comfort penalty weight handles moderate heat; this is a safety floor only
+        # 10. Force minimum AC during hot occupied periods
         if occ > 0 and total_ac > 0 and grid_ok:
             temp = float(row["temperature_c"])
             if temp > 35:
-                prob += ac_on[i] >= 1, f"comfort_force_{i}"
+                prob += ac_on[i] >= max(1, total_ac // 2), f"comfort_force_{i}"
+            elif temp > 30:
+                prob += ac_on[i] >= max(1, total_ac // 3), f"comfort_force_{i}"
 
     # Solve
     solver = pulp.PULP_CBC_CMD(msg=0, timeLimit=55)
