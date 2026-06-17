@@ -200,12 +200,12 @@ def _lp_solve(
     em_terms = []
     comfort_terms = []
 
-    # Pre-cooling: mark unoccupied intervals within 8 hrs of an occupied period
+    # Pre-cooling: mark unoccupied intervals within 16 hrs of an occupied period
     occ_list = [int(intervals.iloc[k]["occupancy_count"]) for k in range(N)]
     precool_window = set()
     for k in range(N):
         if occ_list[k] == 0:
-            for lk in range(1, min(33, N - k)):
+            for lk in range(1, min(65, N - k)):
                 if occ_list[k + lk] > 0:
                     precool_window.add(k)
                     break
