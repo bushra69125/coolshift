@@ -200,12 +200,12 @@ def _lp_solve(
     em_terms = []
     comfort_terms = []
 
-    # Pre-cooling: mark unoccupied intervals within 16 hrs of an occupied period
+    # Pre-cooling: mark unoccupied intervals within 20 hrs of an occupied period
     occ_list = [int(intervals.iloc[k]["occupancy_count"]) for k in range(N)]
     precool_window = set()
     for k in range(N):
         if occ_list[k] == 0:
-            for lk in range(1, min(65, N - k)):
+            for lk in range(1, min(81, N - k)):
                 if occ_list[k + lk] > 0:
                     precool_window.add(k)
                     break
@@ -227,8 +227,12 @@ def _lp_solve(
                 # Penalize having AC off when it's hot and occupied
                 comfort_terms.append(penalty_scale * DT * (total_ac - ac_on[i]))
         elif i in precool_window:
-            # Pre-cooling: always penalize AC off before occupied shift (day or night)
-            pre_scale = COMFORT_PENALTY_WEIGHT * 0.35
+            # Pre-cooling: strong penalty to force building cool before occupied shift.
+            # 5× weight ensures LP always picks pre-cooling over any energy tradeoff.
+            # Temperature-aware: hotter building = even higher penalty.
+            temp = float(row["temperature_c"])
+            excess = max(0.0, temp - (comfort_max - 4))
+            pre_scale = COMFORT_PENALTY_WEIGHT * (5.0 + excess)
             if total_ac > 0:
                 comfort_terms.append(pre_scale * DT * (total_ac - ac_on[i]))
 
