@@ -227,13 +227,13 @@ def _lp_solve(
                 # Penalize having AC off when it's hot and occupied
                 comfort_terms.append(penalty_scale * DT * (total_ac - ac_on[i]))
         elif i in precool_window:
-            # Pre-cooling: strong penalty to force building cool before occupied shift.
-            # 5× weight ensures LP always picks pre-cooling over any energy tradeoff.
-            # Temperature-aware: hotter building = even higher penalty.
+            # Pre-cooling: penalize AC off when outdoor temp is hot (above comfort zone).
+            # Only triggers when outdoor > comfort_max - 3 (≈26°C) so ACs don't run
+            # unnecessarily at cool nights. At night natural ventilation cools the building.
             temp = float(row["temperature_c"])
-            excess = max(0.0, temp - (comfort_max - 4))
-            pre_scale = COMFORT_PENALTY_WEIGHT * (5.0 + excess)
-            if total_ac > 0:
+            excess = max(0.0, temp - (comfort_max - 3))
+            if excess > 0 and total_ac > 0:
+                pre_scale = COMFORT_PENALTY_WEIGHT * (4.0 + excess)
                 comfort_terms.append(pre_scale * DT * (total_ac - ac_on[i]))
 
     # Normalize weights
