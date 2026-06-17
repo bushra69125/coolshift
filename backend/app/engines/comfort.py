@@ -15,7 +15,7 @@ from typing import Optional
 
 # Fraction of outdoor-indoor temp difference that infiltrates per hour (thermal RC model)
 # low insulation = RC ~8 hrs, medium ~20 hrs, high ~40 hrs
-INSULATION_FACTOR = {"low": 0.10, "medium": 0.025, "high": 0.012}
+INSULATION_FACTOR = {"low": 0.10, "medium": 0.010, "high": 0.006}
 SUN_EXPOSURE_GAIN = {"low": 0.0, "medium": 0.4, "high": 0.9}
 
 DT_HOURS = 0.25          # 15-minute interval

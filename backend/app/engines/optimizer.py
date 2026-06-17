@@ -200,12 +200,12 @@ def _lp_solve(
     em_terms = []
     comfort_terms = []
 
-    # Pre-cooling: mark unoccupied intervals within 2 hrs of an occupied period
+    # Pre-cooling: mark unoccupied intervals within 8 hrs of an occupied period
     occ_list = [int(intervals.iloc[k]["occupancy_count"]) for k in range(N)]
     precool_window = set()
     for k in range(N):
         if occ_list[k] == 0:
-            for lk in range(1, min(9, N - k)):
+            for lk in range(1, min(33, N - k)):
                 if occ_list[k + lk] > 0:
                     precool_window.add(k)
                     break
@@ -227,12 +227,11 @@ def _lp_solve(
                 # Penalize having AC off when it's hot and occupied
                 comfort_terms.append(penalty_scale * DT * (total_ac - ac_on[i]))
         elif i in precool_window:
-            # Pre-cooling: use solar (free) to cool before shift starts
+            # Pre-cooling: penalize AC off before occupied shift (solar OR battery)
             temp = float(row["temperature_c"])
-            if solar_gen[i] > 0.01:
-                pre_scale = max(0, temp - (comfort_max - 2)) * COMFORT_PENALTY_WEIGHT * 0.4
-                if total_ac > 0 and pre_scale > 0:
-                    comfort_terms.append(pre_scale * DT * (total_ac - ac_on[i]))
+            pre_scale = max(0, temp - (comfort_max - 2)) * COMFORT_PENALTY_WEIGHT * 0.4
+            if total_ac > 0 and pre_scale > 0:
+                comfort_terms.append(pre_scale * DT * (total_ac - ac_on[i]))
 
     # Normalize weights
     obj = (
