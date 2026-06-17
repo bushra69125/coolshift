@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 DT = 0.25         # 15 minutes in hours
 BIG_M = 1e6
-COMFORT_PENALTY_WEIGHT = 400.0  # PKR-equivalent cost per °C-interval above range
+COMFORT_PENALTY_WEIGHT = 200.0  # PKR-equivalent cost per °C-interval above range
 
 
 REASON_CODES = {
