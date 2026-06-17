@@ -379,7 +379,7 @@ def _lp_solve(
         })
 
     out_df = pd.DataFrame(rows)
-    summary = _build_summary(out_df, baseline_df, run_id, algo_ver, intervals)
+    summary = _build_summary(out_df, baseline_df, run_id, algo_ver, intervals, solar_cap, solar_eff)
     return out_df, summary
 
 
@@ -488,20 +488,21 @@ def _greedy_solve(
         })
 
     out_df = pd.DataFrame(rows)
-    summary = _build_summary(out_df, baseline_df, run_id, algo_ver, intervals)
+    summary = _build_summary(out_df, baseline_df, run_id, algo_ver, intervals, solar_cap, solar_eff)
     return out_df, summary
 
 
-def _build_summary(out_df, baseline_df, run_id, algo_ver, intervals) -> Dict:
+def _build_summary(out_df, baseline_df, run_id, algo_ver, intervals, solar_cap=0.0, solar_eff=0.18) -> Dict:
     opt_cost = out_df["interval_cost_pkr"].sum()
     opt_energy = out_df["grid_energy_kwh"].sum()
     opt_em = out_df["interval_emissions_kgco2e"].sum()
     opt_peak = (out_df["grid_energy_kwh"] / DT).max()
     opt_solar = out_df["solar_energy_used_kwh"].sum()
-    total_solar_gen = sum(
+    raw_irr_sum = sum(
         float(intervals.iloc[i].get("solar_irradiance_w_m2", 0)) / 1000 * DT
         for i in range(len(intervals))
     )
+    total_solar_gen = solar_cap * solar_eff * raw_irr_sum if solar_cap > 0 else raw_irr_sum
 
     occ_mask = intervals["occupancy_count"].values > 0
     comfort_ok = (out_df["comfort_status"] == "within_range").values
@@ -529,7 +530,7 @@ def _build_summary(out_df, baseline_df, run_id, algo_ver, intervals) -> Dict:
         "cost_saving_pct": round((base_cost - opt_cost) / max(base_cost, 0.01) * 100, 1),
         "emission_reduction_kgco2e": round(float(base_em - opt_em), 3),
         "emission_reduction_pct": round((base_em - opt_em) / max(base_em, 0.001) * 100, 1),
-        "solar_utilization_pct": round(opt_solar / max(total_solar_gen, 0.001) * 100, 1),
+        "solar_utilization_pct": round(min(100.0, opt_solar / max(total_solar_gen, 0.001) * 100), 1),
         "comfort_compliance_pct": round(compliance, 1),
         "unsafe_heat_intervals": int((out_df["comfort_status"].isin(["unsafe", "infeasible"])).sum()),
         "constraint_violations": int(out_df["constraint_violation_count"].sum()),
