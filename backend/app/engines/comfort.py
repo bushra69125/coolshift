@@ -19,7 +19,7 @@ INSULATION_FACTOR = {"low": 0.10, "medium": 0.010, "high": 0.006}
 SUN_EXPOSURE_GAIN = {"low": 0.0, "medium": 0.4, "high": 0.9}
 
 DT_HOURS = 0.25          # 15-minute interval
-OCCUPANT_HEAT_GAIN_KW = 0.08   # ~80W sensible heat per person
+OCCUPANT_HEAT_GAIN_KW = 0.04   # ~40W sensible heat per person (school/office sedentary)
 AREA_THERMAL_MASS = 0.05       # kWh/°C per m² — lightweight commercial construction
 
 
