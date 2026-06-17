@@ -227,10 +227,9 @@ def _lp_solve(
                 # Penalize having AC off when it's hot and occupied
                 comfort_terms.append(penalty_scale * DT * (total_ac - ac_on[i]))
         elif i in precool_window:
-            # Pre-cooling: penalize AC off before occupied shift (solar OR battery)
-            temp = float(row["temperature_c"])
-            pre_scale = max(0, temp - (comfort_max - 2)) * COMFORT_PENALTY_WEIGHT * 0.4
-            if total_ac > 0 and pre_scale > 0:
+            # Pre-cooling: always penalize AC off before occupied shift (day or night)
+            pre_scale = COMFORT_PENALTY_WEIGHT * 0.35
+            if total_ac > 0:
                 comfort_terms.append(pre_scale * DT * (total_ac - ac_on[i]))
 
     # Normalize weights
